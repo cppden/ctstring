@@ -1,0 +1,2 @@
+# ctstring
+Compile-Time String
