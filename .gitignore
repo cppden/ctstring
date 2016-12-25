@@ -1,0 +1,52 @@
+#automake tools
+Makefile.in
+aclocal.m4
+ar-lib
+autom4te.cache/
+compile
+config.guess
+config.sub
+configure
+depcomp
+install-sh
+m4/
+missing
+test-driver
+build/
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+#project files
+.codelite/
+Debug/
+Release/
+build/
+*.workspace
+*.mk
+*.project
+Makefile
+*.txt
