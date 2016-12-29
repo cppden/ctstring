@@ -86,6 +86,27 @@ constexpr bool apply(FUNC&& func, char const* p, sequence<ICs...>)
 	return apply_impl<FUNC, ICs...>(std::forward<FUNC>(func), p);
 }
 
+template <class FUNC>
+constexpr bool apply_impl(FUNC&& func, char const* p, std::size_t offset) { return true; }
+
+template <class FUNC, class IC, class... ICs>
+constexpr bool apply_impl(FUNC&& func, char const* p, std::size_t offset)
+{
+	if (offset)
+	{
+		return apply_impl<FUNC, ICs...>(std::forward<FUNC>(func), p, offset - 1);
+	}
+	else
+	{
+		return func(p[IC::my_index], IC::my_char) && apply_impl<FUNC, ICs...>(std::forward<FUNC>(func), p);
+	}
+}
+
+template <class FUNC, class... ICs>
+constexpr bool apply(FUNC&& func, char const* p, sequence<ICs...>, std::size_t offset)
+{
+	return apply_impl<FUNC, ICs...>(std::forward<FUNC>(func), p, offset);
+}
 
 } //end: namespace detail
 
@@ -100,6 +121,13 @@ public:
 	{
 		return (begin + base_t::length() <= end)
 			? detail::apply(is_equal, begin, typename base_t::type{})
+			: false;
+	}
+
+	constexpr bool match(char const* begin, char const* end, std::size_t offset) const
+	{
+		return (begin + base_t::length() <= end && offset < base_t::length())
+			? detail::apply(is_equal, begin, typename base_t::type{}, offset)
 			: false;
 	}
 
@@ -128,6 +156,13 @@ public:
 			: false;
 	}
 
+	constexpr bool match(char const* begin, char const* end, std::size_t offset) const
+	{
+		return (begin + base_t::length() <= end && offset < base_t::length())
+			? detail::apply(is_equal, begin, typename base_t::type{}, offset)
+			: false;
+	}
+
 	static constexpr char const* c_str()
 	{
 		return m_string;
@@ -147,10 +182,15 @@ constexpr char CaseChars<CHARS...>::m_string[];
 //	(void)swallow{0, (std::printf("%c", CHARS), 0)...};
 //}
 
-} //end: namespace cts
+namespace literals {
 
 template <typename T, T... CHARS>
 constexpr cts::Chars<CHARS...> operator""_chars() { return { }; }
 
 template <typename T, T... CHARS>
-constexpr cts::CaseChars<CHARS...> operator""_casechars() { return { }; }
+constexpr cts::CaseChars<CHARS...> operator""_ichars() { return { }; }
+
+} //end: namespace
+
+} //end: namespace cts
+
