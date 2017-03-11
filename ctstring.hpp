@@ -1,7 +1,17 @@
+/**
+@file
+Compile-time string
+
+@copyright Denis Priyomov 2017
+Distributed under the MIT License
+(See accompanying file LICENSE or visit https://github.com/cppden/ctstring)
+*/
+
 #include <cstdint>
 #include <utility>
 #include <type_traits>
-#include <tuple>
+
+#include "string.hpp"
 
 namespace cts {
 
@@ -159,7 +169,7 @@ public:
 	constexpr bool match(char const* begin, char const* end, std::size_t offset) const
 	{
 		return (begin + base_t::length() <= end && offset < base_t::length())
-			? detail::apply(is_equal, begin, typename base_t::type{}, offset)
+			? detail::apply(is_iequal, begin, typename base_t::type{}, offset)
 			: false;
 	}
 
@@ -175,12 +185,86 @@ private:
 template <char... CHARS>
 constexpr char CaseChars<CHARS...>::m_string[];
 
-//template <char... CHARS>
-//void show(detail::chars<CHARS...>)
-//{
-//	using swallow = int[];
-//	(void)swallow{0, (std::printf("%c", CHARS), 0)...};
-//}
+
+namespace detail {
+
+//https://en.wikipedia.org/wiki/Linear_congruential_generator
+//LCG: X(n + 1) = (A * X(n) + C) % m
+constexpr std::size_t rand(std::size_t n)
+{
+#ifndef CTS_RND_SEED
+#define CTS_TIME(index) ((__TIME__[index]-'0')*10 + (__TIME__[index+1]-'0'))
+#define CTS_RND_SEED std::size_t(CTS_TIME(6) + CTS_TIME(3)*60 + CTS_TIME(0)*3600 + 13709*(31+ __COUNTER__))
+#endif
+	//NOTE: cast makes the mod 2^32
+	return static_cast<uint32_t>(1664525u * (n ? rand(n - 1) : CTS_RND_SEED) + 1013904223u);
+}
+
+constexpr char xor_char(char const c, std::size_t const index)
+{
+	return c ^ static_cast<char>(rand(index));
+}
+
+template <std::size_t ...Is>
+struct xor_zip
+{
+	template <char ...Cs>
+	struct with
+	{
+		using type = sequence<index_char<Is, xor_char(Cs, Is)>...>;
+	};
+};
+
+template <std::size_t... Is, char... Cs>
+constexpr auto xor_index(indexes<Is...>, chars<Cs...>) -> typename xor_zip<Is...>::template with<Cs...>::type;
+
+template <char... Cs>
+using xored_chars = decltype(
+	xor_index(std::make_index_sequence<sizeof...(Cs)>{}, chars<Cs...>{})
+);
+
+//TODO: replace with fold expression in c++17
+template <typename T>
+constexpr void xor_impl(char* p) { }
+
+template <typename T, class IC, class... ICs>
+constexpr void xor_impl(char* p)
+{
+	p[IC::my_index] = xor_char(IC::my_char, IC::my_index);
+	xor_impl<T, ICs...>(p);
+}
+
+template <class... ICs>
+constexpr void apply_xor(char* p, sequence<ICs...>)
+{
+	return xor_impl<void, ICs...>(p);
+}
+
+} //end: namespace detail
+
+
+//obfuscated string via XOR
+template <char... CHARS>
+class XorChars
+{
+public:
+	static constexpr std::size_t length() { return sizeof...(CHARS); }
+	using type = detail::xored_chars<CHARS...>;
+
+	string str() const
+	{
+		string result{ this->length() };
+		detail::apply_xor(result.data(), type{});
+		return result;
+	}
+
+private:
+	static constexpr char m_string[] = {CHARS...};
+};
+
+template <char... CHARS>
+constexpr char XorChars<CHARS...>::m_string[];
+
 
 namespace literals {
 
@@ -189,6 +273,9 @@ constexpr cts::Chars<CHARS...> operator""_chars() { return { }; }
 
 template <typename T, T... CHARS>
 constexpr cts::CaseChars<CHARS...> operator""_ichars() { return { }; }
+
+template <typename T, T... CHARS>
+constexpr cts::XorChars<CHARS...> operator""_xchars() { return { }; }
 
 } //end: namespace
 
