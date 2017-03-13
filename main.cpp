@@ -10,6 +10,7 @@ int main(int argc, char **argv)
 	auto sample1 = "Hello"_chars;
 	auto sample2 = "Hello"_ichars;
 
+	//std::printf("%s = %u:%u:%u\n", __TIME__, CTS_TIME(0), CTS_TIME(3), CTS_TIME(6));
 	std::printf("plain 1: %s\n", sample1.c_str());
 	std::printf("plain 2: %s\n", sample2.c_str());
 
@@ -32,8 +33,11 @@ int main(int argc, char **argv)
 		static_assert(!sample3.match(csz, csz+sizeof(csz), 5), "");
 	}
 
-	auto const xsHidden1 = "XOR: this shouldn't be seen in binary!"_xchars;
+	auto const xsHidden1 = "Farewell: this shouldn't be seen in binary!"_xchars;
 	std::cout << "xored 1: " << xsHidden1.str().c_str() << std::endl;
+
+	std::size_t buf[16];
+	std::printf("in-buf(xored 1): %s\n", xsHidden1.str(buf));
 
 	return 0;
 }

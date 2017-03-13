@@ -188,16 +188,23 @@ constexpr char CaseChars<CHARS...>::m_string[];
 
 namespace detail {
 
+#ifndef CTS_RND_SEED
+#define CTS_TIME(index) ((__TIME__[index]-'0')*10 + (__TIME__[index+1]-'0'))
+#define CTS_RND_SEED uint32_t(CTS_TIME(0)*3600 + CTS_TIME(3)*60 + CTS_TIME(6) + 13709*(31+ __COUNTER__))
+#endif
+
 //https://en.wikipedia.org/wiki/Linear_congruential_generator
 //LCG: X(n + 1) = (A * X(n) + C) % m
 constexpr std::size_t rand(std::size_t n)
 {
-#ifndef CTS_RND_SEED
-#define CTS_TIME(index) ((__TIME__[index]-'0')*10 + (__TIME__[index+1]-'0'))
-#define CTS_RND_SEED std::size_t(CTS_TIME(6) + CTS_TIME(3)*60 + CTS_TIME(0)*3600 + 13709*(31+ __COUNTER__))
-#endif
 	//NOTE: cast makes the mod 2^32
 	return static_cast<uint32_t>(1664525u * (n ? rand(n - 1) : CTS_RND_SEED) + 1013904223u);
+}
+
+constexpr std::size_t rand_next(std::size_t rand_curr = CTS_RND_SEED)
+{
+	//NOTE: cast makes the mod 2^32
+	return static_cast<uint32_t>(1664525u * rand_curr + 1013904223u);
 }
 
 constexpr char xor_char(char const c, std::size_t const index)
@@ -223,21 +230,20 @@ using xored_chars = decltype(
 	xor_index(std::make_index_sequence<sizeof...(Cs)>{}, chars<Cs...>{})
 );
 
-//TODO: replace with fold expression in c++17
-template <typename T>
+template <std::size_t STATE>
 constexpr void xor_impl(char* p) { }
 
-template <typename T, class IC, class... ICs>
+template <std::size_t STATE, class IC, class... ICs>
 constexpr void xor_impl(char* p)
 {
-	p[IC::my_index] = xor_char(IC::my_char, IC::my_index);
-	xor_impl<T, ICs...>(p);
+	p[IC::my_index] = IC::my_char ^ static_cast<char>(STATE);
+	xor_impl<rand_next(STATE), ICs...>(p);
 }
 
 template <class... ICs>
 constexpr void apply_xor(char* p, sequence<ICs...>)
 {
-	return xor_impl<void, ICs...>(p);
+	return xor_impl<rand(0), ICs...>(p);
 }
 
 } //end: namespace detail
@@ -247,23 +253,44 @@ constexpr void apply_xor(char* p, sequence<ICs...>)
 template <char... CHARS>
 class XorChars
 {
-public:
-	static constexpr std::size_t length() { return sizeof...(CHARS); }
 	using type = detail::xored_chars<CHARS...>;
 
+public:
+	static constexpr std::size_t size()                  { return sizeof...(CHARS); }
+	static constexpr std::size_t length()                { return size(); }
+
+	//de-obfuscate at run-time into string on heap which will clean up its data in dtor
 	string str() const
 	{
-		string result{ this->length() };
+		string result{ this->size() };
 		detail::apply_xor(result.data(), type{});
 		return result;
 	}
 
-private:
-	static constexpr char m_string[] = {CHARS...};
-};
+	//de-obfuscate at run-time avoiding intermediate copy
+	//but you should clean-up buffer once it's used/no longer needed
+	char* str(void* buffer, std::size_t buf_size) const
+	{
+		if (buf_size >= size())
+		{
+			auto* p = static_cast<char*>(buffer);
+			detail::apply_xor(p, type{});
+			if (buf_size > size()) //NULL terminate if space allows
+			{
+				p[size()] = '\0';
+			}
+			return p;
+		}
+		return nullptr;
+	}
 
-template <char... CHARS>
-constexpr char XorChars<CHARS...>::m_string[];
+	template <typename T, std::size_t QTY>
+	char* str(T (&buffer)[QTY]) const
+	{
+		static_assert(sizeof(buffer) >= size(), "buffer is too small to fit the string");
+		return str(buffer, sizeof(buffer));
+	}
+};
 
 
 namespace literals {
