@@ -35,11 +35,6 @@ build/
 *.a
 *.lib
 
-# Executables
-*.exe
-*.out
-*.app
-
 #project files
 .codelite/
 Debug/
@@ -49,4 +44,8 @@ build/
 *.mk
 *.project
 Makefile
-*.txt
+.autotools
+.cproject
+.settings/
+
+

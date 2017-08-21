@@ -33,4 +33,10 @@ string::~string()
 	}
 }
 
+
+std::ostream& operator<< (std::ostream& out, string const& s)
+{
+	return out << s.c_str();
+}
+
 } //end: namespace cts

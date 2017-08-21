@@ -33,11 +33,11 @@ int main(int argc, char **argv)
 		static_assert(!sample3.match(csz, csz+sizeof(csz), 5), "");
 	}
 
-	auto const xsHidden1 = "Farewell: this shouldn't be seen in binary!"_xchars;
-	std::cout << "xored 1: " << xsHidden1.str().c_str() << std::endl;
+	auto const xsHidden = "FAREWELL: THIS STRING SHOULD NOT BE SEEN IN BINARY EITHER FULL OR IN PIECES!"_xchars;
+	std::cout << "xored 1: " << xsHidden.str() << std::endl;
 
-	std::size_t buf[16];
-	std::printf("in-buf(xored 1): %s\n", xsHidden1.str(buf));
+	std::size_t buf[xsHidden.size()+1];
+	std::printf("in-buf(xored 1): %s\n", xsHidden.str(buf));
 
 	return 0;
 }

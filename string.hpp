@@ -8,6 +8,7 @@ Distributed under the MIT License
 */
 
 #include <vector>
+#include <ostream>
 
 
 namespace cts {
@@ -34,5 +35,6 @@ private:
 	std::vector<char> m_str;
 };
 
+std::ostream& operator<< (std::ostream& out, string const& s);
 
 } //end: namespace cts

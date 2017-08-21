@@ -36,7 +36,7 @@ constexpr bool is_iequal(char const c1, char const c2)
 }
 
 
-namespace detail {
+namespace {
 
 template <char... CHARS>
 using chars = std::integer_sequence<char, CHARS...>;
@@ -46,39 +46,36 @@ using indexes = std::index_sequence<INDEXES...>;
 template <class... ICs>
 struct sequence {};
 
-template <std::size_t I, char C>
-struct index_char
+template <std::size_t I, std::size_t C>
+struct ic //index + char
 {
 	static constexpr std::size_t my_index = I;
-	static constexpr char my_char = C;
+	static constexpr std::size_t my_char = C;
 };
 
-template <std::size_t ...Is>
+template <class Map, std::size_t ...Is>
 struct zip
 {
 	template <char ...Cs>
 	struct with
 	{
-		using type = sequence<index_char<Is, Cs>...>;
+		using type = sequence<ic<Is, Map::apply(Cs, Is)>...>;
 	};
 };
 
-template <std::size_t... Is, char... Cs>
-constexpr auto add_index(indexes<Is...>, chars<Cs...>) -> typename zip<Is...>::template with<Cs...>::type;
-
-template <char... Cs>
-using indexed_chars = decltype(
-	add_index(std::make_index_sequence<sizeof...(Cs)>{}, chars<Cs...>{})
-);
-
-template <char... CHARS>
-class Chars
+struct plain
 {
-public:
-	static constexpr std::size_t length() { return sizeof...(CHARS); }
-	using type = detail::indexed_chars<CHARS...>;
+	static constexpr std::size_t apply(std::size_t c, std::size_t)
+	{
+		return c;
+	}
 };
 
+template <class Map, std::size_t... Is, char... Cs>
+constexpr auto map_index(indexes<Is...>, chars<Cs...>) -> typename zip<Map, Is...>::template with<Cs...>::type;
+
+template <char... Cs>
+using indexed_chars = decltype( map_index<plain>(std::make_index_sequence<sizeof...(Cs)>{}, chars<Cs...>{}) );
 
 //TODO: replace with fold expression in c++17
 template <class FUNC>
@@ -118,26 +115,27 @@ constexpr bool apply(FUNC&& func, char const* p, sequence<ICs...>, std::size_t o
 	return apply_impl<FUNC, ICs...>(std::forward<FUNC>(func), p, offset);
 }
 
-} //end: namespace detail
+} //end: namespace
 
 
 template <char... CHARS>
-class Chars : public detail::Chars<CHARS...>
+class Chars
 {
-	using base_t = detail::Chars<CHARS...>;
-
 public:
+	static constexpr std::size_t length() { return sizeof...(CHARS); }
+	using type = indexed_chars<CHARS...>;
+
 	constexpr bool match(char const* begin, char const* end) const
 	{
-		return (begin + base_t::length() <= end)
-			? detail::apply(is_equal, begin, typename base_t::type{})
+		return (begin + length() <= end)
+			? apply(is_equal, begin, type{})
 			: false;
 	}
 
 	constexpr bool match(char const* begin, char const* end, std::size_t offset) const
 	{
-		return (begin + base_t::length() <= end && offset < base_t::length())
-			? detail::apply(is_equal, begin, typename base_t::type{}, offset)
+		return (begin + length() <= end && offset < length())
+			? apply(is_equal, begin, type{}, offset)
 			: false;
 	}
 
@@ -154,22 +152,23 @@ template <char... CHARS>
 constexpr char Chars<CHARS...>::m_string[];
 
 template <char... CHARS>
-class CaseChars : public detail::Chars<CHARS...>
+class CaseChars
 {
-	using base_t = detail::Chars<CHARS...>;
-
 public:
+	static constexpr std::size_t length() { return sizeof...(CHARS); }
+	using type = indexed_chars<CHARS...>;
+
 	constexpr bool match(char const* begin, char const* end) const
 	{
-		return (begin + base_t::length() <= end)
-			? detail::apply(is_iequal, begin, typename base_t::type{})
+		return (begin + length() <= end)
+			? apply(is_iequal, begin, type{})
 			: false;
 	}
 
 	constexpr bool match(char const* begin, char const* end, std::size_t offset) const
 	{
-		return (begin + base_t::length() <= end && offset < base_t::length())
-			? detail::apply(is_iequal, begin, typename base_t::type{}, offset)
+		return (begin + length() <= end && offset < length())
+			? apply(is_iequal, begin, type{}, offset)
 			: false;
 	}
 
@@ -186,12 +185,15 @@ template <char... CHARS>
 constexpr char CaseChars<CHARS...>::m_string[];
 
 
-namespace detail {
+namespace {
 
 #ifndef CTS_RND_SEED
 #define CTS_TIME(index) ((__TIME__[index]-'0')*10 + (__TIME__[index+1]-'0'))
 #define CTS_RND_SEED uint32_t(CTS_TIME(0)*3600 + CTS_TIME(3)*60 + CTS_TIME(6) + 13709*(31+ __COUNTER__))
 #endif
+
+constexpr std::size_t STATE_OFFSET = 137;
+constexpr std::size_t CHAR_SHIFT_MOD = 7;
 
 //https://en.wikipedia.org/wiki/Linear_congruential_generator
 //LCG: X(n + 1) = (A * X(n) + C) % m
@@ -201,80 +203,89 @@ constexpr std::size_t rand(std::size_t n)
 	return static_cast<uint32_t>(1664525u * (n ? rand(n - 1) : CTS_RND_SEED) + 1013904223u);
 }
 
-constexpr std::size_t rand_next(std::size_t rand_curr = CTS_RND_SEED)
+constexpr std::size_t rand_next(std::size_t rand_curr)
 {
 	//NOTE: cast makes the mod 2^32
 	return static_cast<uint32_t>(1664525u * rand_curr + 1013904223u);
 }
+/*
+	a+b = (a ^ b) + 2*(a | b)
+	a-b = (a ^ b) - 2*(~a | b)
+	a*a(a+1)^2 % 4 = 0
+	(a*a*a -3) % 3 = 0
+	a + b >= a ^ b
+	7*a*a - 1 != b*b
+*/
 
-constexpr char xor_char(char const c, std::size_t const index)
+struct xmap
 {
-	return c ^ static_cast<char>(rand(index));
-}
-
-template <std::size_t ...Is>
-struct xor_zip
-{
-	template <char ...Cs>
-	struct with
+	static constexpr std::size_t apply(std::size_t c, std::size_t index)
 	{
-		using type = sequence<index_char<Is, xor_char(Cs, Is)>...>;
-	};
+		return ((c + index) << (index % CHAR_SHIFT_MOD)) ^ rand(index + STATE_OFFSET);
+	}
 };
 
-template <std::size_t... Is, char... Cs>
-constexpr auto xor_index(indexes<Is...>, chars<Cs...>) -> typename xor_zip<Is...>::template with<Cs...>::type;
+//__attribute__((noinline))
+__attribute__((optimize(0)))
+inline std::size_t decode(std::size_t c, std::size_t index, std::size_t state)
+{
+	return ((c ^ state) >> (index % CHAR_SHIFT_MOD)) - index;
+}
 
 template <char... Cs>
-using xored_chars = decltype(
-	xor_index(std::make_index_sequence<sizeof...(Cs)>{}, chars<Cs...>{})
-);
+using xchars = decltype( map_index<xmap>(std::make_index_sequence<sizeof...(Cs)>{}, chars<Cs...>{}) );
+
+//[[gnu::visibility("hidden")]]
 
 template <std::size_t STATE>
-constexpr void xor_impl(char* p) { }
+constexpr void ximpl(char* p) { }
 
 template <std::size_t STATE, class IC, class... ICs>
-constexpr void xor_impl(char* p)
+__attribute__((always_inline, visibility("internal")))
+inline void ximpl(char* p)
 {
-	p[IC::my_index] = IC::my_char ^ static_cast<char>(STATE);
-	xor_impl<rand_next(STATE), ICs...>(p);
+	p[IC::my_index] = static_cast<char>(decode(IC::my_char, IC::my_index, STATE));
+	ximpl<rand_next(STATE), ICs...>(p);
 }
 
 template <class... ICs>
-constexpr void apply_xor(char* p, sequence<ICs...>)
+__attribute__((always_inline, visibility("internal")))
+inline void xapply(char* p, sequence<ICs...>)
 {
-	return xor_impl<rand(0), ICs...>(p);
+	return ximpl<rand(STATE_OFFSET), ICs...>(p);
 }
 
-} //end: namespace detail
+} //end: namespace
 
 
 //obfuscated string via XOR
 template <char... CHARS>
-class XorChars
+class XChars
 {
-	using type = detail::xored_chars<CHARS...>;
+	using type = xchars<CHARS...>;
 
 public:
 	static constexpr std::size_t size()                  { return sizeof...(CHARS); }
 	static constexpr std::size_t length()                { return size(); }
 
 	//de-obfuscate at run-time into string on heap which will clean up its data in dtor
+	__attribute__((always_inline, visibility("internal")))
 	string str() const
 	{
 		string result{ this->size() };
-		detail::apply_xor(result.data(), type{});
+		xapply(result.data(), type{});
 		return result;
 	}
 
 	//de-obfuscate at run-time avoiding intermediate copy
-	//but you should clean-up buffer once it's used/no longer needed
+	//but you should clean-up buffer once it's used and no longer needed to erase protected data from memory
+	__attribute__((always_inline, visibility("internal")))
 	char* str(void* buffer, std::size_t buf_size) const
 	{
 		if (buf_size >= size())
 		{
 			auto* p = static_cast<char*>(buffer);
-			detail::apply_xor(p, type{});
+			xapply(p, type{});
 			if (buf_size > size()) //NULL terminate if space allows
 			{
 				p[size()] = '\0';
@@ -285,6 +296,7 @@ public:
 	}
 
 	template <typename T, std::size_t QTY>
+	__attribute__((always_inline, visibility("internal")))
 	char* str(T (&buffer)[QTY]) const
 	{
 		static_assert(sizeof(buffer) >= size(), "buffer is too small to fit the string");
@@ -302,7 +314,7 @@ template <typename T, T... CHARS>
 constexpr cts::CaseChars<CHARS...> operator""_ichars() { return { }; }
 
 template <typename T, T... CHARS>
-constexpr cts::XorChars<CHARS...> operator""_xchars() { return { }; }
+constexpr cts::XChars<CHARS...> operator""_xchars() { return { }; }
 
 } //end: namespace
 
