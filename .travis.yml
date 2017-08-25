@@ -11,12 +11,6 @@ script:
   - cd build
   - cmake .. && make -j check
   
-before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y libgtest-dev
-  # what a nice bug wasted 3 hours of my life...
-  - (mkdir -p /tmp/gtest && cd /tmp/gtest && cmake -DCMAKE_BUILD_TYPE=RELEASE /usr/src/gtest && make && sudo mv libg* /usr/lib/)
-
 install:
   - export CXX="$COMPILER"
   - export CC=`echo $COMPILER | sed -e 's/^g++/gcc/' -e 's/^clang++/clang/'`
@@ -42,22 +36,16 @@ matrix:
     - compiler: clang
       addons:
         apt:
-          packages: ['clang-3.8']
+          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
+          packages: ['g++-6', 'clang-3.8']
       env:
         - COMPILER=clang++-3.8
 
     - compiler: clang
       addons:
         apt:
-          packages: ['clang-3.9']
-      env:
-        - COMPILER=clang++-3.9
-
-    - compiler: clang
-      addons:
-        apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0']
-          packages: ['clang-4.0']
+          packages: ['g++-7', 'clang-4.0']
       env:
         - COMPILER=clang++-4.0
 
@@ -72,7 +60,8 @@ matrix:
       before_script:
         - pip install --user cpp-coveralls
       script:
-        - make CXX=$COMPILER -j check
+        - mkdir build && cd build
+        - cmake .. && make -j check
         - coveralls --gcov gcov-7 --gcov-options '\-lp' --exclude ut
 
 notifications:
