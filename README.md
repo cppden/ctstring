@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/cppden/ctstring.svg?branch=master)](https://travis-ci.org/cppden/ctstring)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](../master/LICENSE)
 
 # ctstring
@@ -17,6 +18,6 @@ static_assert(sample2.match(csz, csz+sizeof(csz)), "");
 Obfuscate strings in compiled binary to hide sensitive data:
 ```cpp
 auto const xsHidden = "Farewell: this shouldn't be seen in binary!"_xchars;
-std::cout << "hidden: " << xsHidden1.str().c_str() << std::endl;
+std::cout << "hidden: " << xsHidden.str().c_str() << std::endl;
 ```
 
