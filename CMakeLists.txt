@@ -21,7 +21,7 @@ set ( CXX_SRCS
 
 set_source_files_properties(
   ${CXX_SRCS} PROPERTIES COMPILE_FLAGS 
-  " -O2 -std=c++14 -Wall -Werror"
+  " -O3 -std=c++14 -Wall -Werror"
 )
 
 add_executable(ut_ctstring

@@ -227,7 +227,7 @@ struct xmap
 
 //__attribute__((noinline))
 #ifdef __clang__
-__attribute__((clang:optnone))
+__attribute__((optnone))
 #else
 __attribute__((optimize(0)))
 #endif
