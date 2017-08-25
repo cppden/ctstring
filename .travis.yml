@@ -9,7 +9,7 @@ branches:
 script:
   - mkdir build
   - cd build
-  - cmake && make -j check
+  - cmake .. && make -j check
   
 before_install:
   - sudo apt-get -qq update
