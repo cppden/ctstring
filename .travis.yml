@@ -36,14 +36,6 @@ matrix:
     - compiler: clang
       addons:
         apt:
-          sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-precise-3.8']
-          packages: ['g++-6', 'clang-3.8']
-      env:
-        - COMPILER=clang++-3.8
-
-    - compiler: clang
-      addons:
-        apt:
           sources: ['ubuntu-toolchain-r-test', 'llvm-toolchain-trusty-4.0']
           packages: ['g++-7', 'clang-4.0']
       env:
@@ -57,12 +49,12 @@ matrix:
       env:
         - COMPILER=g++-7
         - CXXFLAGS="-g -O0 --coverage"
-      before_script:
+      before_install:
         - pip install --user cpp-coveralls
       script:
-        - mkdir build && cd build
-        - cmake .. && make -j check
-        - coveralls --gcov gcov-7 --gcov-options '\-lp'
+        - cmake . && make -j check
+      after_success:
+        - coveralls --exclude ut --gcov gcov-7 --gcov-options '\-lp'
 
 notifications:
   email: false
