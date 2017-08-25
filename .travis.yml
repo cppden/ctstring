@@ -9,8 +9,8 @@ branches:
 script:
   - mkdir build
   - cd build
-  - cmake .. && make -j check
-  
+  - cmake .. && make -j check && ../ut/check.sh ut_ctstring
+
 install:
   - export CXX="$COMPILER"
   - export CC=`echo $COMPILER | sed -e 's/^g++/gcc/' -e 's/^clang++/clang/'`
@@ -62,7 +62,7 @@ matrix:
       script:
         - mkdir build && cd build
         - cmake .. && make -j check
-        - coveralls --gcov gcov-7 --gcov-options '\-lp' --exclude ut
+        - coveralls --gcov gcov-7 --gcov-options '\-lp'
 
 notifications:
   email: false

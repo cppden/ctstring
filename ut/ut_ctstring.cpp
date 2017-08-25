@@ -34,10 +34,10 @@ int main(int argc, char **argv)
 	}
 
 	auto const xsHidden = "FAREWELL: THIS STRING SHOULD NOT BE SEEN IN BINARY EITHER FULL OR IN PIECES!"_xchars;
-	std::cout << "xored 1: " << xsHidden.str() << std::endl;
+	std::cout << "xored: " << xsHidden.str() << std::endl;
 
 	std::size_t buf[xsHidden.size()+1];
-	std::printf("in-buf(xored 1): %s\n", xsHidden.str(buf));
+	std::printf("in-buf(xored): %s\n", xsHidden.str(buf));
 
 	return 0;
 }

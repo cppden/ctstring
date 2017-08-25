@@ -226,7 +226,11 @@ struct xmap
 };
 
 //__attribute__((noinline))
+#ifdef __clang__
+__attribute__((clang:optnone))
+#else
 __attribute__((optimize(0)))
+#endif
 inline std::size_t decode(std::size_t c, std::size_t index, std::size_t state)
 {
 	return ((c ^ state) >> (index % CHAR_SHIFT_MOD)) - index;
@@ -307,6 +311,11 @@ public:
 
 namespace literals {
 
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wgnu-string-literal-operator-template"
+#endif
+
 template <typename T, T... CHARS>
 constexpr cts::Chars<CHARS...> operator""_chars() { return { }; }
 
@@ -316,7 +325,11 @@ constexpr cts::CaseChars<CHARS...> operator""_ichars() { return { }; }
 template <typename T, T... CHARS>
 constexpr cts::XChars<CHARS...> operator""_xchars() { return { }; }
 
-} //end: namespace
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+} //end: namespace literals
 
 } //end: namespace cts
 
