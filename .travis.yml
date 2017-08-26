@@ -54,7 +54,7 @@ matrix:
       script:
         - cmake . && make -j check
       after_success:
-        - coveralls -i CMakeFiles/ut_ctstring.dir --gcov gcov-7 --gcov-options '\-lp'
+        - coveralls --gcov gcov-7 --gcov-options '\-lp'
 
 notifications:
   email: false
