@@ -53,8 +53,9 @@ matrix:
         - pip install --user cpp-coveralls
       script:
         - mkdir cover && cd cover
-        - cmake .. && make -j check
+        - cmake .. && make VERBOSE=1 -j check
       after_success:
+        - cd cover
         - coveralls --gcov gcov-7 --gcov-options '\-lp'
 
 notifications:
