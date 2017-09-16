@@ -55,9 +55,9 @@ matrix:
       script:
         - mkdir cover && cd cover
         - cmake .. && make VERBOSE=1 -j check
+        - ls -lR
       after_success:
-        - cd cover
-        - coveralls --gcov gcov-7 --gcov-options '\-lp'
+        - coveralls --verbose --root cover --gcov gcov-7 --gcov-options '\-lp'
 
 notifications:
   email: false
