@@ -29,7 +29,13 @@ else ()
     message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++14 support. Please use a different C++ compiler.")
 endif ()
 
-set(BUILD_FLAGS "-O3")
+if(DEFINED ENV{BUILD_FLAGS})
+    set(BUILD_FLAGS "$ENV{BUILD_FLAGS}")
+else ()
+    set(BUILD_FLAGS "-O3")
+endif ()
+#message(STATUS "Using ${BUILD_FLAGS}.")
+
 add_compile_options(
     -Werror 
     -Wall 
