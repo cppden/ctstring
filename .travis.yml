@@ -48,7 +48,8 @@ matrix:
           packages: ['g++-7']
       env:
         - COMPILER=g++-7
-        - BUILD_FLAGS="-g -O0 --coverage"
+        - BUILD_FLAGS="-g -O0"
+        - CXXFLAGS="--coverage"
       before_install:
         - pip install --user cpp-coveralls
       script:
