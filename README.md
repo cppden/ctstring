@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/cppden/ctstring.svg?branch=master)](https://travis-ci.org/cppden/ctstring)
 [![Coverage Status](https://coveralls.io/repos/github/cppden/ctstring/badge.svg?branch=master)](https://coveralls.io/github/cppden/ctstring?branch=master)
+[![Coverity Scan](https://scan.coverity.com/projects/cppden-ctstring)](https://img.shields.io/coverity/scan/13793.svg)
 [![license](https://img.shields.io/github/license/mashape/apistatus.svg)](../master/LICENSE)
 
 # ctstring
