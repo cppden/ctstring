@@ -54,10 +54,8 @@ matrix:
         - pip install --user cpp-coveralls
       script:
         - cmake . && make VERBOSE=1 -j check
-        - pwd
-        - ls -laR
       after_success:
-        - coveralls --verbose --exclude-pattern "CMake.+" --gcov gcov-7 --gcov-options '\-lp'
+        - coveralls --verbose --exclude-pattern "CMakeFiles/.*" --gcov gcov-7 --gcov-options '\-lp'
 
 notifications:
   email: false
